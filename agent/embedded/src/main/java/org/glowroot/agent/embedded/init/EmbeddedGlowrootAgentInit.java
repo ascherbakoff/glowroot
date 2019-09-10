@@ -111,7 +111,7 @@ class EmbeddedGlowrootAgentInit implements GlowrootAgentInit {
                                 repoModule.getTraceDao().readEntries(null, tracePoint.traceId());
 
                         for (TraceOuterClass.Trace.Entry entry : entries.entries())
-                            logger.info("    " + entry.getMessage() + " " + entry.getDepth());
+                            logger.info("    " + entry.getMessage());
                     }
 
                     return;
