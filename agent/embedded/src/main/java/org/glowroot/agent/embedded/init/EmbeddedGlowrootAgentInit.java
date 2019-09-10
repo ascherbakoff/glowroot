@@ -21,9 +21,16 @@ import java.io.IOException;
 import java.lang.instrument.Instrumentation;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import org.checkerframework.checker.nullness.qual.MonotonicNonNull;
 import org.checkerframework.checker.nullness.qual.Nullable;
+import org.glowroot.agent.embedded.repo.SimpleRepoModule;
+import org.glowroot.common.live.ImmutableTracePointFilter;
+import org.glowroot.common.live.LiveTraceRepository;
+import org.glowroot.common.model.Result;
+import org.glowroot.common2.repo.ImmutableTraceQuery;
+import org.glowroot.wire.api.model.TraceOuterClass;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -78,6 +85,38 @@ class EmbeddedGlowrootAgentInit implements GlowrootAgentInit {
                 embeddedAgentModule.onEnteringMain(confDirs, configReadOnly, dataDir,
                         glowrootJarFile, properties, instrumentation, collectorProxyClass,
                         glowrootVersion, mainClass);
+
+                String offlineArg = System.getProperty("offline.glowroot.arg");
+
+                if ("analyze".equals(offlineArg)) {
+                    SimpleRepoModule repoModule = embeddedAgentModule.getSimpleRepoModule();
+
+                    Result<LiveTraceRepository.TracePoint> points =
+                            repoModule.getTraceDao().readErrorPoints("test",
+                                    ImmutableTraceQuery.builder().
+                                            transactionType("Ignite").
+                                            from(0).
+                                            to(System.currentTimeMillis()).
+                                            build(),
+                                    ImmutableTracePointFilter.builder().
+                                            durationNanosLow(0).
+                                            durationNanosHigh(TimeUnit.NANOSECONDS.convert(10, TimeUnit.SECONDS)).
+                                            build(),
+                                    10_000);
+
+                    for (LiveTraceRepository.TracePoint tracePoint : points.records()) {
+                        logger.info(tracePoint.toString());
+
+                        LiveTraceRepository.Entries entries =
+                                repoModule.getTraceDao().readEntries(null, tracePoint.traceId());
+
+                        for (TraceOuterClass.Trace.Entry entry : entries.entries())
+                            logger.info("    " + entry.getMessage() + " " + entry.getDepth());
+                    }
+
+                    return;
+                }
+
                 // starting new thread in order not to block startup
                 Thread thread = new Thread(new Runnable() {
                     @Override

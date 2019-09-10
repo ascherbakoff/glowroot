@@ -26,11 +26,13 @@ import org.glowroot.common.util.Version;
 public abstract class ToolMain {
 
     public static void main(String[] args) throws Exception {
-        CodeSource codeSource = AgentPremain.class.getProtectionDomain().getCodeSource();
+        String offlineArg = System.getProperty("offline.glowroot.arg");
+
         // suppress warnings is used instead of annotating this method with @Nullable
         // just to avoid dependencies on other classes (in this case the @Nullable annotation)
         @SuppressWarnings("argument.type.incompatible")
-        File glowrootJarFile = AgentPremain.getGlowrootJarFile(codeSource);
+        File glowrootJarFile = offlineArg != null ? new File(System.getProperty("jar.path")) :
+                AgentPremain.getGlowrootJarFile(AgentPremain.class.getProtectionDomain().getCodeSource());
         Directories directories = new Directories(glowrootJarFile);
         MainEntryPoint.initLogging(directories.getConfDirs(), directories.getLogDir(),
                 directories.getLoggingLogstashJarFile(), null);
