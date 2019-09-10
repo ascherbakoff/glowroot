@@ -70,7 +70,7 @@ public class ToolMain {
             MainEntryPoint.runOfflineViewer(directories, new EmbeddedGlowrootAgentInitFactory());
             // Glowroot does not create any non-daemon threads, so need to block jvm from exiting
             // when running the offline viewer
-            MILLISECONDS.sleep(Long.MAX_VALUE);
+            //MILLISECONDS.sleep(Long.MAX_VALUE);
             return;
         }
         String command = args[0];
